@@ -6,6 +6,7 @@ Module: utils.py
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
+from PIL import Image
 
 # цикл обучения и валидации моделей
 #=================================================================
@@ -71,7 +72,7 @@ def train(model, criterion, optimizer, train_loader, test_loader, nof_epochs=401
     model.load_state_dict(best_model_state)                # восстанавливаем модель наилучшей эпохи
 
     return epochs_history, best_MAE, model
-
+#-----------------------------------------------------------------
 
 # визуализация истории обучения моделей
 #=================================================================
@@ -125,3 +126,63 @@ def one_model_history_graph(epochs_history, best_MAE, target_MAE=50):
     plt.show()
 
     return None
+#-----------------------------------------------------------------
+
+# визуализация инференса моделей
+#=================================================================
+def show_top_six(df, end):
+    '''
+    функция рисует красиво объекты с самыми лучшими или самыми худшими инференсами
+    '''
+    
+    if end == 'head':
+        ddf = df.head(6)
+        grade = ' точные '
+    elif end == 'tail':
+        ddf = df.tail(6)
+        grade = ' НЕточные '
+    else:
+        print('FYI: please, use only values "head" or "tail" for the parameter "end"') 
+
+    fig, axes = plt.subplots(2,3, figsize=(11,8), layout='constrained')
+    axes = axes.flatten()
+
+    for i, ax in enumerate(axes):
+        ax.imshow(Image.open(ddf.iloc[i].path_to_photo).convert('RGB'))
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_title('baseline = ' + str(round(ddf.iloc[i].baseline_pred, 2)) + 
+                     ' | multimodal = ' + str(round(ddf.iloc[i].multimodal_pred, 2)))
+        ax.set_xlabel(split_long(ddf.iloc[i].descr, 50))
+        ax.legend(loc='lower left', 
+                  title='вес = '+str(round(ddf.iloc[i].total_mass, 2))+'\nкалорийность = '+str(
+                                     round(ddf.iloc[i].total_calories, 2)))
+
+    fig.suptitle('самые' + grade + 'предсказания\n')
+    plt.show()
+
+    return None
+#-----------------------------------------------------------------
+
+def split_long(text: str, max_len: int) -> str:
+    
+    words = text.split()
+    
+    if not words:
+        return text
+
+    result = [words[0]]
+    current_len = len(words[0])
+
+    for word in words[1:]:
+        # +1 за пробел
+        if current_len + 1 + len(word) > max_len:
+            result.append("\n")
+            result.append(word)
+            current_len = len(word)
+        else:
+            result.append(" ")
+            result.append(word)
+            current_len += 1 + len(word)
+
+    return "".join(result)
